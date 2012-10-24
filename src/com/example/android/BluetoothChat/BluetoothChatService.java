@@ -399,10 +399,12 @@ public class BluetoothChatService {
                     // Read from the InputStream
                     bytes = mmInStream.read(buffer);
                     // Send the obtained bytes to the UI Activity
-                    if(mPprzTransport.parse(bytes, buffer))
+                    if(mPprzTransport.parse(bytes, buffer)) {
                     	//mHandler.obtainMessage(BluetoothChat.MESSAGE_READ, bytes, -1, buffer)
                     	mHandler.obtainMessage(BluetoothChat.MESSAGE_READ, mPprzTransport.payload_len, -1, mPprzTransport.payload)
                             .sendToTarget();
+                    	mPprzTransport.msg_received = false;
+                    }
                 } catch (IOException e) {
                     Log.e(TAG, "disconnected", e);
                     connectionLost();
