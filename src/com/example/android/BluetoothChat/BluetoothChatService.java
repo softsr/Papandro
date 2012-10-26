@@ -57,6 +57,7 @@ public class BluetoothChatService {
     private ConnectedThread mConnectedThread;
     private int mState;
     private PprzTransport mPprzTransport;
+    private PprzMessages mPprzMessage;
 
     // Constants that indicate the current connection state
     public static final int STATE_NONE = 0;       // we're doing nothing
@@ -74,6 +75,7 @@ public class BluetoothChatService {
         mState = STATE_NONE;
         mHandler = handler;
         mPprzTransport = new PprzTransport();
+        mPprzMessage = new PprzMessages();
     }
 
     /**
@@ -160,6 +162,7 @@ public class BluetoothChatService {
         Message msg = mHandler.obtainMessage(BluetoothChat.MESSAGE_DEVICE_NAME);
         Bundle bundle = new Bundle();
         bundle.putString(BluetoothChat.DEVICE_NAME, device.getName());
+        bundle.putString(BluetoothChat.DEVICE_ADDR, device.getAddress());
         msg.setData(bundle);
         mHandler.sendMessage(msg);
 
@@ -392,6 +395,7 @@ public class BluetoothChatService {
             Log.i(TAG, "BEGIN mConnectedThread");
             byte[] buffer = new byte[1024];
             int bytes;
+            //byte[] buf = new byte[1];
 
             // Keep listening to the InputStream while connected
             while (true) {
@@ -399,11 +403,19 @@ public class BluetoothChatService {
                     // Read from the InputStream
                     bytes = mmInStream.read(buffer);
                     // Send the obtained bytes to the UI Activity
-                    if(mPprzTransport.parse(bytes, buffer)) {
+                    //if(mPprzTransport.parse(bytes, buffer))
+                    mPprzTransport.i = 0;
+                    while(mPprzTransport.i < bytes)
+                    {
                     	//mHandler.obtainMessage(BluetoothChat.MESSAGE_READ, bytes, -1, buffer)
-                    	mHandler.obtainMessage(BluetoothChat.MESSAGE_READ, mPprzTransport.payload_len, -1, mPprzTransport.payload)
-                            .sendToTarget();
-                    	mPprzTransport.msg_received = false;
+                    	//mHandler.obtainMessage(BluetoothChat.MESSAGE_READ, mPprzTransport.payload_len, -1, mPprzTransport.payload)
+                    	mPprzTransport.parse_char(mPprzTransport.Int8ToUInt8(buffer[mPprzTransport.i]));
+                    	mPprzTransport.i++;
+                    	if(mPprzTransport.msg_received) {
+                    		mHandler.obtainMessage(BluetoothChat.MESSAGE_READ, mPprzTransport.payload[1], mPprzTransport.payload_len, mPprzTransport.payload)
+                    				.sendToTarget();
+                    		mPprzTransport.msg_received = false;
+                    	}
                     }
                 } catch (IOException e) {
                     Log.e(TAG, "disconnected", e);

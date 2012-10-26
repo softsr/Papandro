@@ -16,6 +16,11 @@
 
 package com.example.android.BluetoothChat;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -56,24 +61,28 @@ public class BluetoothChat extends Activity {
 
     // Key names received from the BluetoothChatService Handler
     public static final String DEVICE_NAME = "device_name";
+    public static final String DEVICE_ADDR = "device_addr";
     public static final String TOAST = "toast";
 
     // Intent request codes
     private static final int REQUEST_CONNECT_DEVICE = 1;
     private static final int REQUEST_ENABLE_BT = 2;
+    
+    private static final String LAST_DEV = "pprz_bt";
 
     // Layout Views
     private TextView mTitle;
     private ListView mConversationView;
-    private EditText mOutEditText;
-    private Button mSendButton;
+    //private EditText mOutEditText;
+    //private Button mSendButton;
 
     // Name of the connected device
     private String mConnectedDeviceName = null;
+    private String mConnectedDeviceAddr = null;
     // Array adapter for the conversation thread
     private ArrayAdapter<String> mConversationArrayAdapter;
     // String buffer for outgoing messages
-    private StringBuffer mOutStringBuffer;
+    //private StringBuffer mOutStringBuffer;
     // Local Bluetooth adapter
     private BluetoothAdapter mBluetoothAdapter = null;
     // Member object for the chat services
@@ -120,6 +129,12 @@ public class BluetoothChat extends Activity {
         } else {
             if (mChatService == null) setupChat();
         }
+        String bt_addr = getBtDevice();
+        if(bt_addr != null) {
+        	// Attempt to connect to the device
+        	BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(bt_addr);
+        	mChatService.connect(device);
+        }
     }
 
     @Override
@@ -139,6 +154,55 @@ public class BluetoothChat extends Activity {
         }
     }
 
+    private void saveBtDevice(String device) {
+    	FileOutputStream fos;
+		try {
+			fos = openFileOutput(LAST_DEV, MODE_PRIVATE);
+			try {
+				fos.write(device.getBytes());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			try {
+				fos.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
+    
+    private String getBtDevice() {
+    	FileInputStream fos;
+        byte[] buf = new byte[17];
+		try {
+			fos = openFileInput(LAST_DEV);
+			try {
+				fos.read(buf);
+				//mConnectedDeviceAddr = new String(buf);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			try {
+				fos.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			// Get the BLuetoothDevice object
+			return new String(buf);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+    }
+    
     private void setupChat() {
         Log.d(TAG, "setupChat()");
 
@@ -147,26 +211,8 @@ public class BluetoothChat extends Activity {
         mConversationView = (ListView) findViewById(R.id.in);
         mConversationView.setAdapter(mConversationArrayAdapter);
 
-        // Initialize the compose field with a listener for the return key
-        mOutEditText = (EditText) findViewById(R.id.edit_text_out);
-        mOutEditText.setOnEditorActionListener(mWriteListener);
-
-        // Initialize the send button with a listener that for click events
-        mSendButton = (Button) findViewById(R.id.button_send);
-        mSendButton.setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-                // Send a message using content of the edit text widget
-                TextView view = (TextView) findViewById(R.id.edit_text_out);
-                String message = view.getText().toString();
-                sendMessage(message);
-            }
-        });
-
         // Initialize the BluetoothChatService to perform bluetooth connections
         mChatService = new BluetoothChatService(this, mHandler);
-
-        // Initialize the buffer for outgoing messages
-        mOutStringBuffer = new StringBuffer("");
     }
 
     @Override
@@ -215,27 +261,16 @@ public class BluetoothChat extends Activity {
             // Get the message bytes and tell the BluetoothChatService to write
             byte[] send = message.getBytes();
             mChatService.write(send);
-
-            // Reset out string buffer to zero and clear the edit text field
-            mOutStringBuffer.setLength(0);
-            mOutEditText.setText(mOutStringBuffer);
         }
     }
-
-    // The action listener for the EditText widget, to listen for the return key
-    private TextView.OnEditorActionListener mWriteListener =
-        new TextView.OnEditorActionListener() {
-        public boolean onEditorAction(TextView view, int actionId, KeyEvent event) {
-            // If the action is a key-up event on the return key, send the message
-            if (actionId == EditorInfo.IME_NULL && event.getAction() == KeyEvent.ACTION_UP) {
-                String message = view.getText().toString();
-                sendMessage(message);
-            }
-            if(D) Log.i(TAG, "END onEditorAction");
-            return true;
-        }
-    };
-
+    
+    private short Int8ToUInt8(byte in) {
+		if (in < 0)
+			return (short) (256 + in);
+		else
+			return in;
+	}
+    
     // The Handler that gets information back from the BluetoothChatService
     private final Handler mHandler = new Handler() {
         @Override
@@ -267,13 +302,43 @@ public class BluetoothChat extends Activity {
             case MESSAGE_READ:
                 byte[] readBuf = (byte[]) msg.obj;
                 // construct a string from the valid bytes in the buffer
-                //mPprzTransport.msg_received = false;
-                String readMessage = new String(readBuf, 0, msg.arg1);
-                mConversationArrayAdapter.add(mConnectedDeviceName+":  " + readMessage);
+                String readMessage, Id;
+                Id = "ID "+ Integer.toString(readBuf[0]) + " ";					//UAV Id
+                switch (msg.arg1) {
+                case 12: // BAT Message
+                	readMessage = Integer.toString(readBuf[2]<<8|readBuf[3]);					//Throttle
+                	mConversationArrayAdapter.add(Id + "Throttle"+":  " + readMessage);
+                	readMessage = Float.toString((float) (Int8ToUInt8(readBuf[4])/10.));		//Voltage
+                	mConversationArrayAdapter.add(Id + "Voltage"+":  " + readMessage);
+                	readMessage = Integer.toString(readBuf[5]<<8|readBuf[6]);					//Flight time
+                	mConversationArrayAdapter.add(Id + "Fl.time"+":  " + readMessage);
+                	break;
+                case 2: // ALIVE Message
+                	readMessage = Integer.toString(readBuf[3]<<8|readBuf[2]);					//Version
+                	mConversationArrayAdapter.add(Id + "Version"+":  " + readMessage);
+                	readMessage = Integer.toString(readBuf[4]<<24|readBuf[5]<<16|readBuf[6]<<8|readBuf[7]);			//XBee_H
+                	mConversationArrayAdapter.add(Id + "XBee_H"+":  " + readMessage);
+                	readMessage = Integer.toString(readBuf[8]<<24|readBuf[9]<<16|readBuf[10]<<8|readBuf[11]);		//XBee_L
+                	mConversationArrayAdapter.add(Id + "XBee_L"+":  " + readMessage);
+                	readMessage = Integer.toString(Int8ToUInt8(readBuf[12]));					//MD5 sum
+                	mConversationArrayAdapter.add(Id + "MD5 sum"+":  " + readMessage);
+                	break;
+                case 110: // DC_SHOT Message
+                	readMessage = Integer.toString(readBuf[2]<<8|readBuf[3]);					//photo_nr
+                	mConversationArrayAdapter.add(Id + "Photo_nr"+":  " + readMessage);
+                	
+                	break;
+                }
+                //String readMessage = new String(readBuf, 0, msg.arg1);
+                
                 break;
             case MESSAGE_DEVICE_NAME:
                 // save the connected device's name
                 mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
+                mConnectedDeviceAddr = msg.getData().getString(DEVICE_ADDR);
+                
+                saveBtDevice(mConnectedDeviceAddr);
+                
                 Toast.makeText(getApplicationContext(), "Connected to "
                                + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
                 break;

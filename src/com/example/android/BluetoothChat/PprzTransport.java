@@ -21,9 +21,9 @@ public class PprzTransport {
 	// specific pprz transport variables
 	public int status;
 	public int payload_idx;
-	public byte ck_a, ck_b;
+	public short ck_a, ck_b;
 	
-	private int i;
+	public int i;
 	private short c;
 	
 	public PprzTransport() {
@@ -33,21 +33,27 @@ public class PprzTransport {
 		status = UNINIT;
 	}
 	
-	private short Int8ToUInt8(byte in) {
+	private short bound_checksum(short in) {
+		if(in > 255)
+			return (short) (in - 256);
+		return in;
+	}
+	
+	public short Int8ToUInt8(byte in) {
 		if (in < 0)
 			return (short) (256 + in);
 		else
 			return in;
 	}
 	
-	private byte UInt8ToInt8(short in) {
+	public byte UInt8ToInt8(short in) {
 		if (in > 127)
-			return (byte) (127 - in);
+			return (byte) (in - 256);
 		else
 			return (byte) in;
 	}
 	
-	private void parse_char(short c) {
+	public void parse_char(short c) {
 		switch (status) {
     	  case UNINIT:
     	    if (c == STX)
@@ -61,13 +67,15 @@ public class PprzTransport {
     	    	return;
     	    }
     	    payload_len = c-4; /* Counting STX, LENGTH and CRC1 and CRC2 */
-    	    ck_a = ck_b = (byte) c;
+    	    ck_a = ck_b = c;
     	    status++;
     	    payload_idx = 0;
     	    break;
     	  case GOT_LENGTH:
     	    payload[payload_idx] = UInt8ToInt8(c);
-    	    ck_a += c; ck_b += ck_a;
+    	    //ck_a += c; ck_b += ck_a;
+    	    ck_a += c; ck_a = bound_checksum(ck_a);
+    	    ck_b += ck_a; ck_b = bound_checksum(ck_b);
     	    payload_idx++;
     	    if (payload_idx == payload_len)
     	    	status++;
