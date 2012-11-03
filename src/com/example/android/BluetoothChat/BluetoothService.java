@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package com.example.android.BluetoothChat;
+package com.example.android.Papandro;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.UUID;
 
 import android.bluetooth.BluetoothAdapter;
@@ -37,9 +38,9 @@ import android.util.Log;
  * incoming connections, a thread for connecting with a device, and a
  * thread for performing data transmissions when connected.
  */
-public class BluetoothChatService {
+public class BluetoothService {
     // Debugging
-    private static final String TAG = "BluetoothChatService";
+    private static final String TAG = "Papandro";
     private static final boolean D = true;
 
     // Name for the SDP record when creating server socket
@@ -57,7 +58,6 @@ public class BluetoothChatService {
     private ConnectedThread mConnectedThread;
     private int mState;
     private PprzTransport mPprzTransport;
-    private PprzMessages mPprzMessage;
 
     // Constants that indicate the current connection state
     public static final int STATE_NONE = 0;       // we're doing nothing
@@ -70,12 +70,11 @@ public class BluetoothChatService {
      * @param context  The UI Activity Context
      * @param handler  A Handler to send messages back to the UI Activity
      */
-    public BluetoothChatService(Context context, Handler handler) {
+    public BluetoothService(Context context, Handler handler) {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
         mState = STATE_NONE;
         mHandler = handler;
         mPprzTransport = new PprzTransport();
-        mPprzMessage = new PprzMessages();
     }
 
     /**
@@ -87,7 +86,7 @@ public class BluetoothChatService {
         mState = state;
 
         // Give the new state to the Handler so the UI Activity can update
-        mHandler.obtainMessage(BluetoothChat.MESSAGE_STATE_CHANGE, state, -1).sendToTarget();
+        mHandler.obtainMessage(Papandro.MESSAGE_STATE_CHANGE, state, -1).sendToTarget();
     }
 
     /**
@@ -159,10 +158,10 @@ public class BluetoothChatService {
         mConnectedThread.start();
 
         // Send the name of the connected device back to the UI Activity
-        Message msg = mHandler.obtainMessage(BluetoothChat.MESSAGE_DEVICE_NAME);
+        Message msg = mHandler.obtainMessage(Papandro.MESSAGE_DEVICE_NAME);
         Bundle bundle = new Bundle();
-        bundle.putString(BluetoothChat.DEVICE_NAME, device.getName());
-        bundle.putString(BluetoothChat.DEVICE_ADDR, device.getAddress());
+        bundle.putString(Papandro.DEVICE_NAME, device.getName());
+        bundle.putString(Papandro.DEVICE_ADDR, device.getAddress());
         msg.setData(bundle);
         mHandler.sendMessage(msg);
 
@@ -204,9 +203,9 @@ public class BluetoothChatService {
         setState(STATE_LISTEN);
 
         // Send a failure message back to the Activity
-        Message msg = mHandler.obtainMessage(BluetoothChat.MESSAGE_TOAST);
+        Message msg = mHandler.obtainMessage(Papandro.MESSAGE_TOAST);
         Bundle bundle = new Bundle();
-        bundle.putString(BluetoothChat.TOAST, "Unable to connect device");
+        bundle.putString(Papandro.TOAST, "Unable to connect device");
         msg.setData(bundle);
         mHandler.sendMessage(msg);
     }
@@ -218,9 +217,9 @@ public class BluetoothChatService {
         setState(STATE_LISTEN);
 
         // Send a failure message back to the Activity
-        Message msg = mHandler.obtainMessage(BluetoothChat.MESSAGE_TOAST);
+        Message msg = mHandler.obtainMessage(Papandro.MESSAGE_TOAST);
         Bundle bundle = new Bundle();
-        bundle.putString(BluetoothChat.TOAST, "Device connection was lost");
+        bundle.putString(Papandro.TOAST, "Device connection was lost");
         msg.setData(bundle);
         mHandler.sendMessage(msg);
     }
@@ -264,7 +263,7 @@ public class BluetoothChatService {
 
                 // If a connection was accepted
                 if (socket != null) {
-                    synchronized (BluetoothChatService.this) {
+                    synchronized (BluetoothService.this) {
                         switch (mState) {
                         case STATE_LISTEN:
                         case STATE_CONNECTING:
@@ -342,12 +341,12 @@ public class BluetoothChatService {
                     Log.e(TAG, "unable to close() socket during connection failure", e2);
                 }
                 // Start the service over to restart listening mode
-                BluetoothChatService.this.start();
+                BluetoothService.this.start();
                 return;
             }
 
             // Reset the ConnectThread because we're done
-            synchronized (BluetoothChatService.this) {
+            synchronized (BluetoothService.this) {
                 mConnectThread = null;
             }
 
@@ -395,7 +394,9 @@ public class BluetoothChatService {
             Log.i(TAG, "BEGIN mConnectedThread");
             byte[] buffer = new byte[1024];
             int bytes;
-            //byte[] buf = new byte[1];
+            byte[] payload = new byte[256];
+            ArrayList<byte[]> messages = new ArrayList<byte[]>();
+            int index = -1;
 
             // Keep listening to the InputStream while connected
             while (true) {
@@ -407,14 +408,20 @@ public class BluetoothChatService {
                     mPprzTransport.i = 0;
                     while(mPprzTransport.i < bytes)
                     {
-                    	//mHandler.obtainMessage(BluetoothChat.MESSAGE_READ, bytes, -1, buffer)
-                    	//mHandler.obtainMessage(BluetoothChat.MESSAGE_READ, mPprzTransport.payload_len, -1, mPprzTransport.payload)
                     	mPprzTransport.parse_char(mPprzTransport.Int8ToUInt8(buffer[mPprzTransport.i]));
                     	mPprzTransport.i++;
                     	if(mPprzTransport.msg_received) {
-                    		mHandler.obtainMessage(BluetoothChat.MESSAGE_READ, mPprzTransport.payload[1], mPprzTransport.payload_len, mPprzTransport.payload)
-                    				.sendToTarget();
-                    		mPprzTransport.msg_received = false;
+        					messages.add(mPprzTransport.payload);
+        					index++;
+        					mPprzTransport.msg_received = false;
+                    	}
+                    	if(payload[0] == 0 && index >= 0) {
+                    		System.arraycopy(messages.get(0), 0, payload, 0, messages.get(0).length);
+        					messages.remove(0);
+        					index--;
+        					mHandler.obtainMessage(Papandro.MESSAGE_READ, payload)
+								.sendToTarget();
+        					Log.d(TAG, "Message send " + index);
                     	}
                     }
                 } catch (IOException e) {
@@ -434,7 +441,7 @@ public class BluetoothChatService {
                 mmOutStream.write(buffer);
 
                 // Share the sent message back to the UI Activity
-                mHandler.obtainMessage(BluetoothChat.MESSAGE_WRITE, -1, -1, buffer)
+                mHandler.obtainMessage(Papandro.MESSAGE_WRITE, -1, -1, buffer)
                         .sendToTarget();
             } catch (IOException e) {
                 Log.e(TAG, "Exception during write", e);

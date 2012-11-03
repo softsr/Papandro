@@ -1,30 +1,34 @@
-/*
- * Copyright (C) 2009 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+package com.example.android.Papandro;
 
-package com.example.android.BluetoothChat;
-
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+//import com.google.android.maps.MapActivity;
+//import com.google.android.maps.MapView;
+
+import com.example.android.Papandro.LCDView;
+
+import org.mapsforge.android.maps.MapActivity;
+import org.mapsforge.android.maps.MapView;
+import org.mapsforge.android.maps.Projection;
+import org.mapsforge.android.maps.overlay.ArrayItemizedOverlay;
+import org.mapsforge.android.maps.overlay.OverlayItem;
+import org.mapsforge.core.GeoPoint;
+
+import android.R.drawable;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.Point;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -47,9 +51,9 @@ import android.widget.Toast;
 /**
  * This is the main Activity that displays the current chat session.
  */
-public class BluetoothChat extends Activity {
+public class Papandro extends Activity {
     // Debugging
-    private static final String TAG = "BluetoothChat";
+    private static final String TAG = "Papandro";
     private static final boolean D = true;
 
     // Message types sent from the BluetoothChatService Handler
@@ -80,25 +84,59 @@ public class BluetoothChat extends Activity {
     private String mConnectedDeviceName = null;
     private String mConnectedDeviceAddr = null;
     // Array adapter for the conversation thread
-    private ArrayAdapter<String> mConversationArrayAdapter;
+    //private ArrayAdapter<String> mConversationArrayAdapter;
     // String buffer for outgoing messages
     //private StringBuffer mOutStringBuffer;
     // Local Bluetooth adapter
     private BluetoothAdapter mBluetoothAdapter = null;
     // Member object for the chat services
-    private BluetoothChatService mChatService = null;
+    private BluetoothService mChatService = null;
+    
+    private Projection projection;
+    public LCDView lcd_view;
 
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+    	if(D) Log.e(TAG, "+++ ON CREATE +++");
         super.onCreate(savedInstanceState);
-        if(D) Log.e(TAG, "+++ ON CREATE +++");
+        
 
         // Set up the window layout
         requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
+        lcd_view = new LCDView(this);
+        lcd_view.setVoltageNA();
+		setContentView(lcd_view);
+        /*
+        MapView mapView = new MapView(this);
+        mapView.setClickable(true);
+        mapView.setBuiltInZoomControls(true);
+        mapView.setMapFile(new File("/sdcard/Papandro/berlin.map"));
+        setContentView(mapView);
+        
+        Drawable defaultMarker = getResources().getDrawable(drawable.ic_menu_mylocation);
+        // create an ItemizedOverlay with the default marker
+        ArrayItemizedOverlay itemizedOverlay = new ArrayItemizedOverlay(defaultMarker);
+        // create a GeoPoint with the latitude and longitude coordinates
+        GeoPoint geoPoint = new GeoPoint(52.516272, 13.377722);
+        // create an OverlayItem with title and description
+        OverlayItem item = new OverlayItem(geoPoint, "Brandenburg Gate",
+                "One of the main symbols of Berlin and Germany.");
+        MyOverlay line = new MyOverlay();
+        // add the OverlayItem to the ArrayItemizedOverlay
+        itemizedOverlay.addItem(item);
+        itemizedOverlay.addItem(line);
+        // add the ArrayItemizedOverlay to the MapView
+        mapView.getOverlays().add(itemizedOverlay);
+        */
+        /*
+        requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
         setContentView(R.layout.main);
+        MapView mapView = (MapView) findViewById(R.id.mapview);
+        mapView.setBuiltInZoomControls(true);
+        mapView.setSatellite(true);
+        */
         getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE, R.layout.custom_title);
-
         // Set up the custom title
         mTitle = (TextView) findViewById(R.id.title_left_text);
         mTitle.setText(R.string.app_name);
@@ -115,6 +153,40 @@ public class BluetoothChat extends Activity {
         }
     }
 
+    class MyOverlay extends OverlayItem{
+
+        public MyOverlay(){
+
+        }   
+
+        public void draw(Canvas canvas, MapView mapv, boolean shadow){
+            this.draw(canvas, mapv, shadow);
+
+            Paint   mPaint = new Paint();
+            mPaint.setDither(true);
+            mPaint.setColor(Color.RED);
+            mPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+            mPaint.setStrokeJoin(Paint.Join.ROUND);
+            mPaint.setStrokeCap(Paint.Cap.ROUND);
+            mPaint.setStrokeWidth(2);
+
+            GeoPoint gP1 = new GeoPoint(52.516272, 13.377722);
+            GeoPoint gP2 = new GeoPoint(52.617272, 13.478722);
+
+            Point p1 = new Point();
+            Point p2 = new Point();
+            Path path = new Path();
+ 
+            projection.toPixels(gP1, p1);
+            projection.toPixels(gP2, p2);
+
+            path.moveTo(p2.x, p2.y);
+            path.lineTo(p1.x,p1.y);
+
+            canvas.drawPath(path, mPaint);
+        }
+    }
+    
     @Override
     public void onStart() {
         super.onStart();
@@ -127,7 +199,8 @@ public class BluetoothChat extends Activity {
             startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
         // Otherwise, setup the chat session
         } else {
-            if (mChatService == null) setupChat();
+            if (mChatService == null) 
+            	setupChat();
         }
         String bt_addr = getBtDevice();
         if(bt_addr != null) {
@@ -147,7 +220,7 @@ public class BluetoothChat extends Activity {
         // onResume() will be called when ACTION_REQUEST_ENABLE activity returns.
         if (mChatService != null) {
             // Only if the state is STATE_NONE, do we know that we haven't started already
-            if (mChatService.getState() == BluetoothChatService.STATE_NONE) {
+            if (mChatService.getState() == BluetoothService.STATE_NONE) {
               // Start the Bluetooth chat services
               mChatService.start();
             }
@@ -207,12 +280,12 @@ public class BluetoothChat extends Activity {
         Log.d(TAG, "setupChat()");
 
         // Initialize the array adapter for the conversation thread
-        mConversationArrayAdapter = new ArrayAdapter<String>(this, R.layout.message);
-        mConversationView = (ListView) findViewById(R.id.in);
-        mConversationView.setAdapter(mConversationArrayAdapter);
+        //mConversationArrayAdapter = new ArrayAdapter<String>(this, R.layout.message);
+        //mConversationView = (ListView) findViewById(R.id.in);
+        //mConversationView.setAdapter(mConversationArrayAdapter);
 
         // Initialize the BluetoothChatService to perform bluetooth connections
-        mChatService = new BluetoothChatService(this, mHandler);
+        mChatService = new BluetoothService(this, mHandler);
     }
 
     @Override
@@ -251,7 +324,7 @@ public class BluetoothChat extends Activity {
      */
     private void sendMessage(String message) {
         // Check that we're actually connected before trying anything
-        if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
+        if (mChatService.getState() != BluetoothService.STATE_CONNECTED) {
             Toast.makeText(this, R.string.not_connected, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -279,16 +352,16 @@ public class BluetoothChat extends Activity {
             case MESSAGE_STATE_CHANGE:
                 if(D) Log.i(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
                 switch (msg.arg1) {
-                case BluetoothChatService.STATE_CONNECTED:
+                case BluetoothService.STATE_CONNECTED:
                     mTitle.setText(R.string.title_connected_to);
                     mTitle.append(mConnectedDeviceName);
-                    mConversationArrayAdapter.clear();
+                    //mConversationArrayAdapter.clear();
                     break;
-                case BluetoothChatService.STATE_CONNECTING:
+                case BluetoothService.STATE_CONNECTING:
                     mTitle.setText(R.string.title_connecting);
                     break;
-                case BluetoothChatService.STATE_LISTEN:
-                case BluetoothChatService.STATE_NONE:
+                case BluetoothService.STATE_LISTEN:
+                case BluetoothService.STATE_NONE:
                     mTitle.setText(R.string.title_not_connected);
                     break;
                 }
@@ -297,40 +370,37 @@ public class BluetoothChat extends Activity {
                 byte[] writeBuf = (byte[]) msg.obj;
                 // construct a string from the buffer
                 String writeMessage = new String(writeBuf);
-                mConversationArrayAdapter.add("Me:  " + writeMessage);
+                //mConversationArrayAdapter.add("Me:  " + writeMessage);
                 break;
             case MESSAGE_READ:
+            	if(D) Log.i(TAG, "Message received");
                 byte[] readBuf = (byte[]) msg.obj;
+            	//System.arraycopy(msg.obj, 0, readBuf, 0, msg.arg2);
                 // construct a string from the valid bytes in the buffer
                 String readMessage, Id;
-                Id = "ID "+ Integer.toString(readBuf[0]) + " ";					//UAV Id
-                switch (msg.arg1) {
+                //Id = "ID "+ Integer.toString(readBuf[0]) + " ";					//UAV Id
+                switch (Int8ToUInt8(readBuf[1])) {
                 case 12: // BAT Message
-                	readMessage = Integer.toString(readBuf[2]<<8|readBuf[3]);					//Throttle
-                	mConversationArrayAdapter.add(Id + "Throttle"+":  " + readMessage);
-                	readMessage = Float.toString((float) (Int8ToUInt8(readBuf[4])/10.));		//Voltage
-                	mConversationArrayAdapter.add(Id + "Voltage"+":  " + readMessage);
-                	readMessage = Integer.toString(readBuf[5]<<8|readBuf[6]);					//Flight time
-                	mConversationArrayAdapter.add(Id + "Fl.time"+":  " + readMessage);
+                	//readMessage = Integer.toString(readBuf[2]<<8|readBuf[3]);					//Throttle
+                	//readMessage = Float.toString((float) (Int8ToUInt8(readBuf[4])/10.));		//Voltage
+                	if(readBuf[4] != 0) {
+                		lcd_view.setVoltage((float) (Int8ToUInt8(readBuf[4])/10.));
+                		if(D) Log.i(TAG, "Voltage: " + readBuf[4]);
+                	}
+                	//readMessage = Integer.toString(readBuf[5]<<8|readBuf[6]);					//Flight time
                 	break;
                 case 2: // ALIVE Message
                 	readMessage = Integer.toString(readBuf[3]<<8|readBuf[2]);					//Version
-                	mConversationArrayAdapter.add(Id + "Version"+":  " + readMessage);
                 	readMessage = Integer.toString(readBuf[4]<<24|readBuf[5]<<16|readBuf[6]<<8|readBuf[7]);			//XBee_H
-                	mConversationArrayAdapter.add(Id + "XBee_H"+":  " + readMessage);
                 	readMessage = Integer.toString(readBuf[8]<<24|readBuf[9]<<16|readBuf[10]<<8|readBuf[11]);		//XBee_L
-                	mConversationArrayAdapter.add(Id + "XBee_L"+":  " + readMessage);
                 	readMessage = Integer.toString(Int8ToUInt8(readBuf[12]));					//MD5 sum
-                	mConversationArrayAdapter.add(Id + "MD5 sum"+":  " + readMessage);
                 	break;
                 case 110: // DC_SHOT Message
                 	readMessage = Integer.toString(readBuf[2]<<8|readBuf[3]);					//photo_nr
-                	mConversationArrayAdapter.add(Id + "Photo_nr"+":  " + readMessage);
                 	
                 	break;
                 }
-                //String readMessage = new String(readBuf, 0, msg.arg1);
-                
+                readBuf[0] = 0;
                 break;
             case MESSAGE_DEVICE_NAME:
                 // save the connected device's name
@@ -401,5 +471,11 @@ public class BluetoothChat extends Activity {
         }
         return false;
     }
-
+/*
+	@Override
+	protected boolean isRouteDisplayed() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+*/
 }

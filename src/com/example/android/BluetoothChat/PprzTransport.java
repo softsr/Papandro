@@ -1,4 +1,4 @@
-package com.example.android.BluetoothChat;
+package com.example.android.Papandro;
 
 public class PprzTransport {
 	private static final int TRANSPORT_PAYLOAD_LEN = 256;
