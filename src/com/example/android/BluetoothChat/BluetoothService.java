@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.UUID;
 
 import android.bluetooth.BluetoothAdapter;
@@ -378,8 +379,9 @@ public class BluetoothService {
             Log.i(TAG, "BEGIN mConnectedThread");
             byte[] buffer = new byte[1024];
             int bytes;
-            byte[] payload = new byte[256];
+            //byte[] payload = new byte[256];
             ArrayList<byte[]> messages = new ArrayList<byte[]>();
+            //ArrayList<byte[]> send_messages = new ArrayList<byte[]>();
             int index = -1;
 
             // Keep listening to the InputStream while connected
@@ -387,25 +389,28 @@ public class BluetoothService {
                 try {
                     // Read from the InputStream
                     bytes = mmInStream.read(buffer);
-                    // Send the obtained bytes to the UI Activity
-                    //if(mPprzTransport.parse(bytes, buffer))
+                    if(!messages.isEmpty())
+                    	if(messages.get(0)[0] == 0) {
+                    		messages.clear();
+                    		index = -1;
+                    	}
                     mPprzTransport.i = 0;
                     while(mPprzTransport.i < bytes)
                     {
                     	mPprzTransport.parse_char(mPprzTransport.Int8ToUInt8(buffer[mPprzTransport.i]));
                     	mPprzTransport.i++;
                     	if(mPprzTransport.msg_received) {
-        					messages.add(mPprzTransport.payload);
+                    		byte[] payload = new byte[256];
+                    		System.arraycopy(mPprzTransport.payload, 0, payload, 0, mPprzTransport.payload_len);
+                    		messages.add(payload);
+        					//messages.add(mPprzTransport.payload);
+        					if(index < 0) {
+        						mHandler.obtainMessage(Papandro.MESSAGE_READ, messages)
+    								.sendToTarget();
+        						Log.d(TAG, "Message send");
+        					}
         					index++;
         					mPprzTransport.msg_received = false;
-                    	}
-                    	if(payload[0] == 0 && index >= 0) {
-                    		System.arraycopy(messages.get(0), 0, payload, 0, messages.get(0).length);
-        					messages.remove(0);
-        					index--;
-        					mHandler.obtainMessage(Papandro.MESSAGE_READ, payload)
-								.sendToTarget();
-        					Log.d(TAG, "Message send " + index);
                     	}
                     }
                 } catch (IOException e) {

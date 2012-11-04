@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 
 //import com.google.android.maps.MapActivity;
 //import com.google.android.maps.MapView;
@@ -40,6 +41,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.View.OnClickListener;
+import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -75,7 +77,7 @@ public class Papandro extends Activity {
     private static final String LAST_DEV = "pprz_bt";
 
     // Layout Views
-    private TextView mTitle;
+    //private TextView mTitle;
     private ListView mConversationView;
     //private EditText mOutEditText;
     //private Button mSendButton;
@@ -103,7 +105,7 @@ public class Papandro extends Activity {
         
 
         // Set up the window layout
-        requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
         lcd_view = new LCDView(this);
         lcd_view.setVoltageNA();
 		setContentView(lcd_view);
@@ -136,11 +138,15 @@ public class Papandro extends Activity {
         mapView.setBuiltInZoomControls(true);
         mapView.setSatellite(true);
         */
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+		WindowManager.LayoutParams lp = getWindow().getAttributes();
+		lp.screenBrightness = 255.0f;
+		getWindow().setAttributes(lp);
         getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE, R.layout.custom_title);
         // Set up the custom title
-        mTitle = (TextView) findViewById(R.id.title_left_text);
-        mTitle.setText(R.string.app_name);
-        mTitle = (TextView) findViewById(R.id.title_right_text);
+        //mTitle = (TextView) findViewById(R.id.title_left_text);
+        //mTitle.setText(R.string.app_name);
+        //mTitle = (TextView) findViewById(R.id.title_right_text);
         
         // Get local Bluetooth adapter
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -353,16 +359,19 @@ public class Papandro extends Activity {
                 if(D) Log.i(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
                 switch (msg.arg1) {
                 case BluetoothService.STATE_CONNECTED:
-                    mTitle.setText(R.string.title_connected_to);
-                    mTitle.append(mConnectedDeviceName);
+                    //mTitle.setText(R.string.title_connected_to);
+                    //mTitle.append(mConnectedDeviceName);
+                	lcd_view.connect.text = R.string.title_connected_to + mConnectedDeviceName;
                     //mConversationArrayAdapter.clear();
                     break;
                 case BluetoothService.STATE_CONNECTING:
-                    mTitle.setText(R.string.title_connecting);
+                    //mTitle.setText(R.string.title_connecting);
+                	lcd_view.connect.text = R.string.title_connecting + mConnectedDeviceName;
                     break;
                 case BluetoothService.STATE_LISTEN:
                 case BluetoothService.STATE_NONE:
-                    mTitle.setText(R.string.title_not_connected);
+                    //mTitle.setText(R.string.title_not_connected);
+                	lcd_view.connect.text = R.string.title_not_connected + mConnectedDeviceName;
                     break;
                 }
                 break;
@@ -373,12 +382,16 @@ public class Papandro extends Activity {
                 //mConversationArrayAdapter.add("Me:  " + writeMessage);
                 break;
             case MESSAGE_READ:
-            	if(D) Log.i(TAG, "Message received");
-                byte[] readBuf = (byte[]) msg.obj;
-            	//System.arraycopy(msg.obj, 0, readBuf, 0, msg.arg2);
-                // construct a string from the valid bytes in the buffer
-                String readMessage, Id;
+            	byte[] readBuf = null;
+            	ArrayList<byte[]> messages = (ArrayList<byte[]>) msg.obj;
+                //String readMessage, Id;
+                if(D) Log.i(TAG, "Message received " + (messages.size() - 1));
                 //Id = "ID "+ Integer.toString(readBuf[0]) + " ";					//UAV Id
+                for(int i = 0; i < messages.size(); i++)
+                {
+                	try {
+                		readBuf = messages.get(i);
+                	
                 switch (Int8ToUInt8(readBuf[1])) {
                 case 12: // BAT Message
                 	//readMessage = Integer.toString(readBuf[2]<<8|readBuf[3]);					//Throttle
@@ -390,17 +403,19 @@ public class Papandro extends Activity {
                 	//readMessage = Integer.toString(readBuf[5]<<8|readBuf[6]);					//Flight time
                 	break;
                 case 2: // ALIVE Message
-                	readMessage = Integer.toString(readBuf[3]<<8|readBuf[2]);					//Version
-                	readMessage = Integer.toString(readBuf[4]<<24|readBuf[5]<<16|readBuf[6]<<8|readBuf[7]);			//XBee_H
-                	readMessage = Integer.toString(readBuf[8]<<24|readBuf[9]<<16|readBuf[10]<<8|readBuf[11]);		//XBee_L
-                	readMessage = Integer.toString(Int8ToUInt8(readBuf[12]));					//MD5 sum
+                	//readMessage = Integer.toString(readBuf[3]<<8|readBuf[2]);					//Version
+                	//readMessage = Integer.toString(readBuf[4]<<24|readBuf[5]<<16|readBuf[6]<<8|readBuf[7]);			//XBee_H
+                	//readMessage = Integer.toString(readBuf[8]<<24|readBuf[9]<<16|readBuf[10]<<8|readBuf[11]);		//XBee_L
+                	//readMessage = Integer.toString(Int8ToUInt8(readBuf[12]));					//MD5 sum
                 	break;
                 case 110: // DC_SHOT Message
-                	readMessage = Integer.toString(readBuf[2]<<8|readBuf[3]);					//photo_nr
+                	//readMessage = Integer.toString(readBuf[2]<<8|readBuf[3]);					//photo_nr
                 	
                 	break;
                 }
-                readBuf[0] = 0;
+                readBuf[i] = 0;
+                	}catch(Exception e){}
+                }
                 break;
             case MESSAGE_DEVICE_NAME:
                 // save the connected device's name
