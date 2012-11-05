@@ -15,15 +15,28 @@
 -->
 
 <resources>
-    <string name="app_name">Bluetooth Chat</string>
+    <string name="app_name">Papandro</string>
 
-    <!--  BluetoothChat -->
+    <!--  Papandro -->
     <string name="send">Send</string>
     <string name="not_connected">You are not connected to a device</string>
     <string name="bt_not_enabled_leaving">Bluetooth was not enabled. Leaving Bluetooth Chat.</string>
-    <string name="title_connecting">connecting...</string>
-    <string name="title_connected_to">connected: </string>
-    <string name="title_not_connected">not connected</string>
+    <string name="title_connecting">Connecting...</string>
+    <string name="title_connected_to">Connected </string>
+    <string name="title_not_connected">Not connected</string>
+    <string name="gps_no">NOFIX</string>
+    <string name="gps_2d">2D</string>
+    <string name="gps_3d">3D</string>
+    <string name="rc_lost">LOST</string>
+    <string name="rc_no">NORC</string>
+    <string name="mode_manu">MANU</string>
+    <string name="mode_auto1">AUTO1</string>
+    <string name="mode_auto2">AUTO2</string>
+    <string name="mode_home">HOME</string>
+    <string name="mode_nogps">NOGPS</string>
+    <string name="mode_failsafe">F.SAFE</string>
+    <string name="link_nolink">NOLINK</string>
+    <string name="ok">OK</string>
 
     <!--  DeviceListActivity -->
     <string name="scanning">scanning for devices...</string>

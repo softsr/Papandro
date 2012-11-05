@@ -12,12 +12,12 @@ import java.util.ArrayList;
 
 import com.example.android.Papandro.LCDView;
 
-import org.mapsforge.android.maps.MapActivity;
-import org.mapsforge.android.maps.MapView;
-import org.mapsforge.android.maps.Projection;
-import org.mapsforge.android.maps.overlay.ArrayItemizedOverlay;
-import org.mapsforge.android.maps.overlay.OverlayItem;
-import org.mapsforge.core.GeoPoint;
+//import org.mapsforge.android.maps.MapActivity;
+//import org.mapsforge.android.maps.MapView;
+//import org.mapsforge.android.maps.Projection;
+//import org.mapsforge.android.maps.overlay.ArrayItemizedOverlay;
+//import org.mapsforge.android.maps.overlay.OverlayItem;
+//import org.mapsforge.core.GeoPoint;
 
 import android.R.drawable;
 import android.app.Activity;
@@ -94,7 +94,7 @@ public class Papandro extends Activity {
     // Member object for the chat services
     private BluetoothService mChatService = null;
     
-    private Projection projection;
+//    private Projection projection;
     public LCDView lcd_view;
 
 
@@ -158,7 +158,7 @@ public class Papandro extends Activity {
             return;
         }
     }
-
+/*
     class MyOverlay extends OverlayItem{
 
         public MyOverlay(){
@@ -192,7 +192,7 @@ public class Papandro extends Activity {
             canvas.drawPath(path, mPaint);
         }
     }
-    
+*/    
     @Override
     public void onStart() {
         super.onStart();
@@ -361,17 +361,22 @@ public class Papandro extends Activity {
                 case BluetoothService.STATE_CONNECTED:
                     //mTitle.setText(R.string.title_connected_to);
                     //mTitle.append(mConnectedDeviceName);
-                	lcd_view.connect.text = R.string.title_connected_to + mConnectedDeviceName;
+                	lcd_view.connect.text = getString(R.string.title_connected_to);
+                	lcd_view.connect.setColor(lcd_view.connect.green);
                     //mConversationArrayAdapter.clear();
                     break;
                 case BluetoothService.STATE_CONNECTING:
                     //mTitle.setText(R.string.title_connecting);
-                	lcd_view.connect.text = R.string.title_connecting + mConnectedDeviceName;
+                	lcd_view.connect.text = getString(R.string.title_connecting);
+                	lcd_view.connect.setColor(lcd_view.connect.orange);
                     break;
                 case BluetoothService.STATE_LISTEN:
                 case BluetoothService.STATE_NONE:
                     //mTitle.setText(R.string.title_not_connected);
-                	lcd_view.connect.text = R.string.title_not_connected + mConnectedDeviceName;
+                	lcd_view.connect.text = getString(R.string.title_not_connected);
+                	lcd_view.connect.setColor(lcd_view.connect.red);
+                	lcd_view.link.text = getString(R.string.link_nolink);
+                	lcd_view.link.setColor(lcd_view.connect.red);
                     break;
                 }
                 break;
@@ -393,20 +398,112 @@ public class Papandro extends Activity {
                 		readBuf = messages.get(i);
                 	
                 switch (Int8ToUInt8(readBuf[1])) {
-                case 12: // BAT Message
-                	//readMessage = Integer.toString(readBuf[2]<<8|readBuf[3]);					//Throttle
-                	//readMessage = Float.toString((float) (Int8ToUInt8(readBuf[4])/10.));		//Voltage
-                	if(readBuf[4] != 0) {
-                		lcd_view.setVoltage((float) (Int8ToUInt8(readBuf[4])/10.));
-                		if(D) Log.i(TAG, "Voltage: " + readBuf[4]);
-                	}
-                	//readMessage = Integer.toString(readBuf[5]<<8|readBuf[6]);					//Flight time
-                	break;
                 case 2: // ALIVE Message
                 	//readMessage = Integer.toString(readBuf[3]<<8|readBuf[2]);					//Version
                 	//readMessage = Integer.toString(readBuf[4]<<24|readBuf[5]<<16|readBuf[6]<<8|readBuf[7]);			//XBee_H
                 	//readMessage = Integer.toString(readBuf[8]<<24|readBuf[9]<<16|readBuf[10]<<8|readBuf[11]);		//XBee_L
                 	//readMessage = Integer.toString(Int8ToUInt8(readBuf[12]));					//MD5 sum
+                	break;
+                case 8: // GPS Message
+                	//if(D) Log.i(TAG, "GPS " + readBuf[2]);
+                	switch(readBuf[2]) {
+                	case 0:
+                		lcd_view.gps.text = getString(R.string.gps_no);
+                    	lcd_view.gps.setColor(lcd_view.connect.red);
+                		break;
+                	case 1:
+                		lcd_view.gps.text = getString(R.string.gps_2d);
+                    	lcd_view.gps.setColor(lcd_view.connect.orange);
+                		break;
+                	case 3:
+                		lcd_view.gps.text = getString(R.string.gps_3d);
+                    	lcd_view.gps.setColor(lcd_view.connect.green);
+                		break;
+                	}
+                	float speed = (float)((readBuf[18]<<8|readBuf[17])/100.);
+                	
+                	if(speed < 9) {
+                		lcd_view.speed.setColor(lcd_view.connect.red);
+                		if(speed < 1.)
+                			lcd_view.speed.text = "0.0m/s"; // Speed
+                		else
+                			lcd_view.speed.text = Float.toString(speed) + "m/s"; // Speed
+                	}
+                	else {
+                		lcd_view.speed.setColor(lcd_view.connect.orange);
+                		lcd_view.speed.text = Float.toString(speed) + "m/s"; // Speed
+                	}
+                	break;
+                case 11: // PPRZ_MODE Message
+                	//readMessage = Integer.toString(readBuf[2]<<8|readBuf[3]);					//photo_nr
+                	if(D) Log.i(TAG, "PPRZ_MODE: ");
+                	switch(readBuf[2]) {
+                	case 0:
+                		lcd_view.mode.text = getString(R.string.mode_manu);
+                    	lcd_view.mode.setColor(lcd_view.connect.orange);
+                		break;
+                	case 1:
+                		lcd_view.mode.text = getString(R.string.mode_auto1);
+                    	lcd_view.mode.setColor(lcd_view.connect.blue);
+                		break;
+                	case 2:
+                		lcd_view.mode.text = getString(R.string.mode_auto2);
+                    	lcd_view.mode.setColor(lcd_view.connect.green);
+                		break;
+                	case 3:
+                		lcd_view.mode.text = getString(R.string.mode_home);
+                    	lcd_view.mode.setColor(lcd_view.connect.red);
+                		break;
+                	case 4:
+                		lcd_view.mode.text = getString(R.string.mode_nogps);
+                    	lcd_view.mode.setColor(lcd_view.connect.red);
+                		break;
+                	case 5:
+                		lcd_view.mode.text = getString(R.string.mode_failsafe);
+                    	lcd_view.mode.setColor(lcd_view.connect.red);
+                		break;
+                	}
+                	switch(readBuf[7]) {
+                	case 0:
+                		lcd_view.rc.text = getString(R.string.rc_lost);
+                    	lcd_view.rc.setColor(lcd_view.connect.orange);
+                		break;
+                	case 1:
+                		lcd_view.rc.text = getString(R.string.ok);
+                    	lcd_view.rc.setColor(lcd_view.connect.green);
+                		break;
+                	case 2:
+                		lcd_view.rc.text = getString(R.string.rc_no);
+                    	lcd_view.rc.setColor(lcd_view.connect.red);
+                		break;
+                	}
+                	break;
+                case 12: // BAT Message
+                	//readMessage = Integer.toString(readBuf[2]<<8|readBuf[3]);					//Throttle
+                	lcd_view.motor.text = Integer.toString(readBuf[2]<<8|readBuf[3]/9600) + "%";
+                	
+                	//readMessage = Float.toString((float) (Int8ToUInt8(readBuf[4])/10.));		//Voltage
+                	if(readBuf[4] != 0) {
+                		lcd_view.setVoltage((float) (Int8ToUInt8(readBuf[4])/10.));
+                		lcd_view.link.text = getString(R.string.ok);
+                    	lcd_view.link.setColor(lcd_view.connect.green);
+                		if(D) Log.i(TAG, "Voltage: " + readBuf[4]);
+                	}
+                	//readMessage = Integer.toString(readBuf[5]<<8|readBuf[6]);					//Flight time
+                	break;
+                case 31: // DL_VALUE Message
+                	//readMessage = Integer.toString(readBuf[2]<<8|readBuf[3]);					//photo_nr
+                	
+                	switch(readBuf[2]) {
+                	case 11: // kill throttle
+                		if(D) Log.i(TAG, "DL Value: N" + readBuf[6]);
+                		if(readBuf[6] == 0)
+                			lcd_view.motor.setColor(lcd_view.connect.orange);
+                		else
+                			lcd_view.motor.setColor(lcd_view.connect.red);
+                	break;
+                	}
+                	
                 	break;
                 case 110: // DC_SHOT Message
                 	//readMessage = Integer.toString(readBuf[2]<<8|readBuf[3]);					//photo_nr

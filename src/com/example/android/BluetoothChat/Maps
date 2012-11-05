@@ -1,7 +1,0 @@
-public class HelloMapView extends MapActivity {
-
-	@Override
-	protected boolean isRouteDisplayed() {
-    	return false;
-}
-}
