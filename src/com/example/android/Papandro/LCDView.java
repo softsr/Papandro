@@ -20,6 +20,8 @@ public class LCDView extends View
 	public Display gps;
 	public Display motor;
 	public Display alt;
+	public Display alt_dif;
+	public Display alt_must;
 	public Display link;
 	public Display block;
 	public Display wp;
@@ -34,6 +36,8 @@ public class LCDView extends View
 		gps = new Display();
 		motor = new Display();
 		alt = new Display();
+		alt_dif = new Display();
+		alt_must = new Display();
 		link = new Display();
 		block = new Display();
 		wp = new Display();
@@ -46,14 +50,16 @@ public class LCDView extends View
 		setFocusable(true);
 		volt = new Display();
 		speed = new Display(Display.red, Display.black, this.getHeight()/10, "0.0m/s");
-		mode = new Display(Display.orange, Display.black, this.getHeight()/10, context.getString(R.string.mode_manu));
+		mode = new Display(Display.orange, Display.black, this.getHeight()/10, context.getString(R.string.n_a));
 		rc = new Display(Display.red, Display.black, this.getHeight()/10, context.getString(R.string.rc_no));
 		gps = new Display(Display.red, Display.black, this.getHeight()/10, context.getString(R.string.gps_no));
 		motor = new Display(Display.red, Display.black, this.getHeight()/10, "0%");
-		alt = new Display();
+		alt_dif = new Display(Display.white, Display.black, this.getHeight()/10, "D:  0m");
+		alt_must = new Display(Display.white, Display.black, this.getHeight()/10, "S:  0m");
+		alt = new Display(Display.orange, Display.black, this.getHeight()/10, "0m");
 		link = new Display(Display.red, Display.black, this.getHeight()/10, "");
-		block = new Display();
-		wp = new Display();
+		block = new Display(Display.red, Display.black, this.getHeight()/10, context.getString(R.string.n_a));
+		wp = new Display(Display.red, Display.black, this.getHeight()/10, context.getString(R.string.n_a));
 		connect = new Display(Display.red, Display.black, this.getHeight()/30, context.getString(R.string.title_not_connected));
 	}
 
@@ -109,6 +115,8 @@ public class LCDView extends View
 		
 		motor.setRect(gps.right + gap, gap, width - gap, height/10);
 		alt.setRect(gps.right + gap, rc.top, width - gap, link.bottom + gap + link.getHeight());
+		alt_dif.setRect(gps.right + gap, motor.bottom + gap, width - gap, motor.bottom + height/10);
+		alt_must.setRect(gps.right + gap, alt_dif.bottom + gap, width - gap, alt_dif.bottom + height/10);
 		wp.setRect(gap, link.bottom + gap, gps.right, alt.bottom);
 		block.setRect(gap, wp.bottom + gap, width - gap, alt.bottom + height/10);
 		connect.setRect(gap, block.bottom + gap, width - gap, height - gap);
@@ -126,10 +134,10 @@ public class LCDView extends View
 		canvas.drawRoundRect(rc.getRect(), 7, 7, rc.paint); // rc
 		canvas.drawRoundRect(gps.getRect(), 7, 7, gps.paint); // gps
 		canvas.drawRoundRect(motor.getRect(), 7, 7, motor.paint); // throttle
-		canvas.drawRoundRect(alt.getRect(), 7, 7, mPaint); // altitude
+		canvas.drawRoundRect(alt.getRect(), 7, 7, alt.paint); // altitude
 		canvas.drawRoundRect(link.getRect(), 7, 7, link.paint); // link
-		canvas.drawRoundRect(wp.getRect(), 7, 7, mPaint); // waypoints
-		canvas.drawRoundRect(block.getRect(), 7, 7, mPaint); // block
+		canvas.drawRoundRect(wp.getRect(), 7, 7, wp.paint); // waypoints
+		canvas.drawRoundRect(block.getRect(), 7, 7, block.paint); // block
 		canvas.drawRoundRect(connect.getRect(), 7, 7, connect.paint); // modem connection
 		
 		mPaint.setColor(0xFF40FF40);
@@ -153,6 +161,16 @@ public class LCDView extends View
 		canvas.drawText(speed.text, (speed.left + speed.right)/2, (speed.top + speed.bottom)/2 + speed.text_height/3, speed.tpaint);
 		link.setTextHeight(this.getHeight()/20);
 		canvas.drawText(link.text, (link.left + link.right)/2, (link.top + link.bottom)/2 + link.text_height/3, link.tpaint);
+		alt_dif.setTextHeight(this.getHeight()/20);
+		canvas.drawText(alt_dif.text, (alt_dif.left + alt_dif.right)/2, (alt_dif.top + alt_dif.bottom)/2 + alt_dif.text_height/3, alt_dif.tpaint);
+		alt_must.setTextHeight(this.getHeight()/20);
+		canvas.drawText(alt_must.text, (alt_must.left + alt_must.right)/2, (alt_must.top + alt_must.bottom)/2 + alt_must.text_height/3, alt_must.tpaint);
+		alt.setTextHeight(this.getHeight()/15);
+		canvas.drawText(alt.text, (alt.left + alt.right)/2, (alt.top + alt.bottom)/2 + alt.text_height/3, alt.tpaint);
+		wp.setTextHeight(this.getHeight()/20);
+		canvas.drawText(wp.text, (wp.left + wp.right)/2, (wp.top + wp.bottom)/2 + wp.text_height/3, wp.tpaint);
+		block.setTextHeight(this.getHeight()/20);
+		canvas.drawText(block.text, (block.left + block.right)/2, (block.top + block.bottom)/2 + block.text_height/3, block.tpaint);
 		
 		invalidate();
 	}

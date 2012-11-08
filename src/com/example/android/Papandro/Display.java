@@ -11,6 +11,7 @@ public class Display {
 	public static final int red = 0xFFFF0000;
 	public static final int blue = 0xFF00FFFF;
 	public static final int black = 0xFF000000;
+	public static final int white = 0xFFFFFFFF;
 	
 	public int left;
 	public int top;
@@ -22,6 +23,8 @@ public class Display {
 	public Paint paint;
 	public Paint tpaint;
 	public Color color;
+	public int i_value;
+	public float f_value;
 	
 	public Display() {
 		paint = new Paint();
@@ -35,6 +38,7 @@ public class Display {
 		tpaint = new Paint();
 		color = new Color();
 		paint.setColor(col);
+		paint.setShadowLayer(2, 2, 2, col);
 		tpaint.setColor(tcol);
 		tpaint.setTextSize(t_heigh);
 		tpaint.setTextAlign(Align.CENTER);
@@ -63,11 +67,16 @@ public class Display {
 	public void setColor(int col) {
 		try{
 		paint.setColor(col);
+		paint.setShadowLayer(2, 2, 2, col);
 		}catch(Exception e){}
 	}
 	
 	public void setTextHeight(int heigh) {
 		text_height = heigh;
 		tpaint.setTextSize(heigh);
+	}
+	
+	public void setTextAlign(Align align) {
+		tpaint.setTextAlign(align);
 	}
 }

@@ -397,7 +397,7 @@ public class Papandro extends Activity {
                 	try {
                 		readBuf = messages.get(i);
                 	
-                switch (Int8ToUInt8(readBuf[1])) {
+                switch (readBuf[1]&0xFF) {
                 case 2: // ALIVE Message
                 	//readMessage = Integer.toString(readBuf[3]<<8|readBuf[2]);					//Version
                 	//readMessage = Integer.toString(readBuf[4]<<24|readBuf[5]<<16|readBuf[6]<<8|readBuf[7]);			//XBee_H
@@ -405,7 +405,7 @@ public class Papandro extends Activity {
                 	//readMessage = Integer.toString(Int8ToUInt8(readBuf[12]));					//MD5 sum
                 	break;
                 case 8: // GPS Message
-                	//if(D) Log.i(TAG, "GPS " + readBuf[2]);
+                	if(D) Log.i(TAG, "GPS " + readBuf[2]);
                 	switch(readBuf[2]) {
                 	case 0:
                 		lcd_view.gps.text = getString(R.string.gps_no);
@@ -420,8 +420,7 @@ public class Papandro extends Activity {
                     	lcd_view.gps.setColor(lcd_view.connect.green);
                 		break;
                 	}
-                	float speed = (float)((readBuf[18]<<8|readBuf[17])/100.);
-                	
+                	float speed = (((readBuf[18]&0xFF)<<8|(readBuf[17]&0xFF))/100.f);
                 	if(speed < 9) {
                 		lcd_view.speed.setColor(lcd_view.connect.red);
                 		if(speed < 1.)
@@ -433,10 +432,62 @@ public class Papandro extends Activity {
                 		lcd_view.speed.setColor(lcd_view.connect.orange);
                 		lcd_view.speed.text = Float.toString(speed) + "m/s"; // Speed
                 	}
+                	if(D) Log.i(TAG, "Alt " + readBuf[13] + " " + readBuf[14] + " " + readBuf[15] + " " + readBuf[16]);
+                	lcd_view.alt.i_value = ((readBuf[16]&0xFF)<<24|(readBuf[15]&0xFF)<<16|(readBuf[14]&0xFF)<<8|(readBuf[13]&0xFF))/100;
+                	lcd_view.alt.text = Integer.toString(lcd_view.alt.i_value) + "m";
+                	lcd_view.alt_dif.text = "D: " + Integer.toString(lcd_view.alt.i_value - lcd_view.alt_must.i_value) + "m";
+                	break;
+                case 10: //Navigation
+                	if(D) Log.i(TAG, "Block " + readBuf[2]);
+                	switch(readBuf[2]&0xFF) {
+                	case 0:
+                		lcd_view.block.text = getString(R.string.wait_gps);
+                    	lcd_view.block.setColor(Display.red);
+                		break;
+                	case 1:
+                		lcd_view.block.text = getString(R.string.geo_init);
+                    	lcd_view.block.setColor(Display.red);
+                		break;
+                	case 2:
+                		lcd_view.block.text = getString(R.string.start);
+                    	lcd_view.block.setColor(Display.orange);
+                		break;
+                	case 3:
+                		lcd_view.block.text = getString(R.string.takeoff);
+                    	lcd_view.block.setColor(Display.green);
+                		break;
+                	case 4:
+                		lcd_view.block.text = getString(R.string.climbloop);
+                    	lcd_view.block.setColor(Display.green);
+                		break;
+                	case 5:
+                		lcd_view.block.text = getString(R.string.land);
+                    	lcd_view.block.setColor(Display.green);
+                		break;
+                	case 6:
+                		lcd_view.block.text = getString(R.string.landingloop);
+                    	lcd_view.block.setColor(Display.green);
+                		break;
+                	case 7:
+                		lcd_view.block.text = getString(R.string.land_final);
+                    	lcd_view.block.setColor(Display.green);
+                		break;
+                	case 8:
+                		lcd_view.block.text = getString(R.string.flare);
+                    	lcd_view.block.setColor(Display.green);
+                		break;
+                	case 9:
+                		lcd_view.block.text = getString(R.string.route);
+                    	lcd_view.block.setColor(Display.green);
+                		break;
+                	case 10:
+                		lcd_view.block.text = getString(R.string.home);
+                    	lcd_view.block.setColor(Display.green);
+                		break;
+                	}
                 	break;
                 case 11: // PPRZ_MODE Message
-                	//readMessage = Integer.toString(readBuf[2]<<8|readBuf[3]);					//photo_nr
-                	if(D) Log.i(TAG, "PPRZ_MODE: ");
+                	if(D) Log.i(TAG, "PPRZ_MODE: " + readBuf[7]);
                 	switch(readBuf[2]) {
                 	case 0:
                 		lcd_view.mode.text = getString(R.string.mode_manu);
@@ -464,15 +515,15 @@ public class Papandro extends Activity {
                 		break;
                 	}
                 	switch(readBuf[7]) {
-                	case 0:
+                	case 4:
                 		lcd_view.rc.text = getString(R.string.rc_lost);
                     	lcd_view.rc.setColor(lcd_view.connect.orange);
                 		break;
-                	case 1:
+                	case 5:
                 		lcd_view.rc.text = getString(R.string.ok);
                     	lcd_view.rc.setColor(lcd_view.connect.green);
                 		break;
-                	case 2:
+                	case 6:
                 		lcd_view.rc.text = getString(R.string.rc_no);
                     	lcd_view.rc.setColor(lcd_view.connect.red);
                 		break;
@@ -480,28 +531,50 @@ public class Papandro extends Activity {
                 	break;
                 case 12: // BAT Message
                 	//readMessage = Integer.toString(readBuf[2]<<8|readBuf[3]);					//Throttle
-                	lcd_view.motor.text = Integer.toString(readBuf[2]<<8|readBuf[3]/9600) + "%";
-                	
-                	//readMessage = Float.toString((float) (Int8ToUInt8(readBuf[4])/10.));		//Voltage
+                	lcd_view.motor.text = Integer.toString(((readBuf[3]&0xFF)<<8|(readBuf[2]&0xFF))/96) + "%";
+                	if(D) Log.i(TAG, "Motor: " + readBuf[3] + " " + readBuf[2]);
                 	if(readBuf[4] != 0) {
                 		lcd_view.setVoltage((float) (Int8ToUInt8(readBuf[4])/10.));
                 		lcd_view.link.text = getString(R.string.ok);
                     	lcd_view.link.setColor(lcd_view.connect.green);
                 		if(D) Log.i(TAG, "Voltage: " + readBuf[4]);
                 	}
+                	if(D) Log.i(TAG, "Kill " + readBuf[7]);
+                	if(readBuf[7] == 0)
+            			lcd_view.motor.setColor(lcd_view.connect.orange);
+            		else
+            			lcd_view.motor.setColor(lcd_view.connect.red);
                 	//readMessage = Integer.toString(readBuf[5]<<8|readBuf[6]);					//Flight time
                 	break;
                 case 31: // DL_VALUE Message
                 	//readMessage = Integer.toString(readBuf[2]<<8|readBuf[3]);					//photo_nr
-                	
                 	switch(readBuf[2]) {
-                	case 11: // kill throttle
-                		if(D) Log.i(TAG, "DL Value: N" + readBuf[6]);
-                		if(readBuf[6] == 0)
-                			lcd_view.motor.setColor(lcd_view.connect.orange);
-                		else
-                			lcd_view.motor.setColor(lcd_view.connect.red);
-                	break;
+                	case 0: // Must altitude
+                		lcd_view.alt_must.f_value = Float.intBitsToFloat((readBuf[6]&0xFF)<<24|(readBuf[5]&0xFF)<<16|(readBuf[4]&0xFF)<<8|(readBuf[3]&0xFF));
+                		lcd_view.alt_must.i_value = (int) lcd_view.alt_must.f_value;
+                		if(D) Log.i(TAG, "DL Value: N" + lcd_view.alt_must.f_value);
+                		lcd_view.alt_must.text = "S: " + Float.toString(lcd_view.alt_must.f_value);
+                		break;
+                	case 13: // Waypoints number
+                		if(D) Log.i(TAG, "Wp " + readBuf[3] + " " + readBuf[4] + " " + readBuf[5] + " " + readBuf[6]);
+                		lcd_view.wp.i_value = (readBuf[3]&0xFF)<<24|(readBuf[4]&0xFF)<<16|
+                        											(readBuf[5]&0xFF)<<8|(readBuf[6]&0xFF);
+                		//lcd_view.wp.text = "von " + Integer.toString(((readBuf[3]&0xFF)<<24|(readBuf[4]&0xFF)<<16|
+                		//											(readBuf[5]&0xFF)<<8|(readBuf[6]&0xFF))) + "Pkt";
+                		break;
+                	case 14: // Waypoints OK number
+                		if(D) Log.i(TAG, "Wp_ok" + readBuf[3] + " " + readBuf[4] + " " + readBuf[5] + " " + readBuf[6]);
+                		//lcd_view.alt_must.text = "S: " + Long.toString((readBuf[3]<<24|readBuf[4]<<16|readBuf[5]<<8|readBuf[6])/10);7
+                		if (((readBuf[3]&0xFF)<<24|(readBuf[4]&0xFF)<<16|
+												(readBuf[5]&0xFF)<<8|(readBuf[6]&0xFF)) != lcd_view.wp.i_value) {
+                			lcd_view.wp.text = "Uebertragen...";
+                			lcd_view.wp.setColor(lcd_view.connect.red);
+                		}
+                		else {
+                			lcd_view.wp.text = getString(R.string.wp_ok);
+                			lcd_view.wp.setColor(lcd_view.connect.green);
+                		}
+                		break;
                 	}
                 	
                 	break;

@@ -36,7 +36,22 @@
     <string name="mode_nogps">NOGPS</string>
     <string name="mode_failsafe">F.SAFE</string>
     <string name="link_nolink">NOLINK</string>
+    <string name="wp_ok">Punkte Ok</string>
+    
+    <string name="wait_gps">Warte auf GPS...</string>
+    <string name="geo_init">Initialisierung...</string>
+    <string name="start">Starten</string>
+    <string name="takeoff">Bereit zum Abheben</string>
+    <string name="climbloop">Steigen</string>
+    <string name="land">Landung</string>
+    <string name="landingloop">Landeanflug</string>
+    <string name="land_final">Final</string>
+    <string name="flare">Flare</string>
+    <string name="route">Route</string>
+    <string name="home">Warteschleife</string>
+    
     <string name="ok">OK</string>
+    <string name="n_a">N/A</string>
 
     <!--  DeviceListActivity -->
     <string name="scanning">scanning for devices...</string>
