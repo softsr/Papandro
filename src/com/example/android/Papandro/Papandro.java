@@ -343,13 +343,6 @@ public class Papandro extends Activity {
         }
     }
     
-    private short Int8ToUInt8(byte in) {
-		if (in < 0)
-			return (short) (256 + in);
-		else
-			return in;
-	}
-    
     // The Handler that gets information back from the BluetoothChatService
     private final Handler mHandler = new Handler() {
         @Override
@@ -534,7 +527,7 @@ public class Papandro extends Activity {
                 	lcd_view.motor.text = Integer.toString(((readBuf[3]&0xFF)<<8|(readBuf[2]&0xFF))/96) + "%";
                 	if(D) Log.i(TAG, "Motor: " + readBuf[3] + " " + readBuf[2]);
                 	if(readBuf[4] != 0) {
-                		lcd_view.setVoltage((float) (Int8ToUInt8(readBuf[4])/10.));
+                		lcd_view.setVoltage((float) ((readBuf[4]&0xFF)/10.));
                 		lcd_view.link.text = getString(R.string.ok);
                     	lcd_view.link.setColor(lcd_view.connect.green);
                 		if(D) Log.i(TAG, "Voltage: " + readBuf[4]);

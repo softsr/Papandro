@@ -397,7 +397,7 @@ public class BluetoothService {
                     mPprzTransport.i = 0;
                     while(mPprzTransport.i < bytes)
                     {
-                    	mPprzTransport.parse_char(mPprzTransport.Int8ToUInt8(buffer[mPprzTransport.i]));
+                    	mPprzTransport.parse_char(buffer[mPprzTransport.i]);
                     	mPprzTransport.i++;
                     	if(mPprzTransport.msg_received) {
                     		byte[] payload = new byte[256];
